@@ -1,10 +1,14 @@
 /* ── RESET ── */
-#marateca-chat-root *, #marateca-chat-root *::before, #marateca-chat-root *::after {
+.mc-window *, .mc-window *::before, .mc-window *::after {
+  box-sizing: border-box; margin: 0; padding: 0;
+}
+.mc-fab *, .mc-fab *::before, .mc-fab *::after {
   box-sizing: border-box; margin: 0; padding: 0;
 }
 
 /* ── VARIABLES ── */
-#marateca-chat-root {
+/* Usando :root para que las variables estén disponibles en todos los elementos */
+:root {
   --brand:       #00C48C;
   --brand-dark:  #009E72;
   --bg-chat:     #F0F2F5;
@@ -14,6 +18,9 @@
   --text-muted:  #667781;
   --shadow:      0 1px 0.5px rgba(0,0,0,.13);
   --radius:      16px;
+}
+
+.mc-window {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
