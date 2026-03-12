@@ -12,11 +12,10 @@ export function Chat({ config, onClose }) {
   const [messages, setMessages] = useState(() =>
     initialMessages.map(text => ({ id: Date.now() + Math.random(), text, role: 'bot', time: getTime() }))
   )
-  const [input, setInput]   = useState('')
-  const [typing, setTyping] = useState(false)
-  const messagesRef          = useRef(null)
-  const inputRef             = useRef(null)
-  const windowRef            = useRef(null)
+  const [input, setInput]     = useState('')
+  const [typing, setTyping]   = useState(false)
+  const messagesRef            = useRef(null)
+  const inputRef               = useRef(null)
 
   // Scroll al último mensaje
   function scrollBottom() {
@@ -28,34 +27,13 @@ export function Chat({ config, onClose }) {
 
   useEffect(() => { scrollBottom() }, [messages, typing])
 
-  // Ajuste dinámico al teclado + scroll
+  // Scroll cuando abre el teclado móvil
   useEffect(() => {
-    function adjust() {
-      const h = window.visualViewport
-        ? window.visualViewport.height
-        : window.innerHeight
-
-      if (windowRef.current) {
-        windowRef.current.style.height = h + 'px'
-      }
-      scrollBottom()
-    }
-
-    adjust()
-
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', adjust, { passive: true })
-      window.visualViewport.addEventListener('scroll', adjust, { passive: true })
-    }
-    window.addEventListener('resize', adjust, { passive: true })
-
-    return () => {
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', adjust)
-        window.visualViewport.removeEventListener('scroll', adjust)
-      }
-      window.removeEventListener('resize', adjust)
-    }
+    const vv = window.visualViewport
+    if (!vv) return
+    const handler = () => scrollBottom()
+    vv.addEventListener('resize', handler, { passive: true })
+    return () => vv.removeEventListener('resize', handler)
   }, [])
 
   function addMessage(text, role) {
@@ -99,7 +77,7 @@ export function Chat({ config, onClose }) {
   }
 
   return (
-    <div class="mc-window" ref={windowRef}>
+    <div class="mc-window">
 
       <header class="mc-header">
         <div class="mc-header-info">
