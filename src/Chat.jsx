@@ -14,6 +14,7 @@ export function Chat({ config, onClose }) {
   )
   const [input, setInput]     = useState('')
   const [typing, setTyping]   = useState(false)
+  const [closing, setClosing] = useState(false)
   const messagesRef            = useRef(null)
   const inputRef               = useRef(null)
 
@@ -35,6 +36,11 @@ export function Chat({ config, onClose }) {
     vv.addEventListener('resize', handler, { passive: true })
     return () => vv.removeEventListener('resize', handler)
   }, [])
+
+  function handleClose() {
+    setClosing(true)
+    setTimeout(onClose, 200)
+  }
 
   function addMessage(text, role) {
     setMessages(prev => [...prev, { id: Date.now() + Math.random(), text, role, time: getTime() }])
@@ -77,7 +83,7 @@ export function Chat({ config, onClose }) {
   }
 
   return (
-    <div class="mc-window">
+    <div class={`mc-window ${closing ? 'mc-closing' : ''}`}>
 
       <header class="mc-header">
         <div class="mc-header-info">
@@ -87,7 +93,7 @@ export function Chat({ config, onClose }) {
             <span><span class="mc-status-dot" />En línea</span>
           </div>
         </div>
-        <button class="mc-close-btn" onClick={onClose} aria-label="Cerrar">✕</button>
+        <button class="mc-close-btn" onClick={handleClose} aria-label="Cerrar">✕</button>
       </header>
 
       <div class="mc-messages" ref={messagesRef}>
