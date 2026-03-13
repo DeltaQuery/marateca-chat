@@ -6,8 +6,16 @@ function getTime() {
 }
 
 export function Chat({ config, theme, onClose }) {
-  const { webhookUrl, initialMessages = [], i18n = {}, showWelcomeScreen = false } = config
-  const t = i18n.en || {}
+  const {
+    webhookUrl,
+    initialMessages   = [],
+    i18n              = {},
+    defaultLanguage   = 'es',
+    showWelcomeScreen = false,
+  } = config
+
+  // Usa el idioma configurado
+  const t = i18n[defaultLanguage] || i18n.es || i18n.en || {}
 
   const [messages, setMessages] = useState(() =>
     initialMessages.map(text => ({ id: Date.now() + Math.random(), text, role: 'bot', time: getTime() }))
@@ -89,26 +97,25 @@ export function Chat({ config, theme, onClose }) {
           <div class="mc-avatar">🏃</div>
           <div class="mc-header-text">
             <h3>{t.title || 'Asistente virtual'}</h3>
-            <span><span class="mc-status-dot" />En línea</span>
+            <span><span class="mc-status-dot" />{t.online || 'En línea'}</span>
           </div>
         </div>
         <button class="mc-close-btn" onClick={handleClose} aria-label="Cerrar">✕</button>
       </header>
 
-      {/* Welcome Screen */}
       {!started ? (
         <div class="mc-welcome">
           <div class="mc-welcome-icon">🏃</div>
           <h2>{t.title || 'Asistente virtual'}</h2>
           <p>Estamos aquí para ayudarte 24/7.</p>
           <button class="mc-welcome-btn" onClick={() => setStarted(true)}>
-            Iniciar conversación
+            {t.welcomeButton || 'Iniciar conversación'}
           </button>
         </div>
       ) : (
         <>
           <div class="mc-messages" ref={messagesRef}>
-            <div class="mc-date-sep">Hoy</div>
+            <div class="mc-date-sep">{t.today || 'Hoy'}</div>
             {messages.map(msg => (
               <div key={msg.id} class={`mc-msg ${msg.role}`}>
                 {msg.text}

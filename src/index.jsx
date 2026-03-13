@@ -26,10 +26,27 @@ const THEMES = {
   },
 }
 
+// Textos por defecto según idioma
+const DEFAULT_I18N = {
+  en: {
+    title:            'Virtual assistant',
+    inputPlaceholder: 'Type a message...',
+    welcomeButton:    'Start conversation',
+    online:           'Online',
+    today:            'Today',
+  },
+  es: {
+    title:            'Asistente virtual',
+    inputPlaceholder: 'Escribe un mensaje...',
+    welcomeButton:    'Iniciar conversación',
+    online:           'En línea',
+    today:            'Hoy',
+  },
+}
+
 function Widget({ config }) {
   const [open, setOpen] = useState(false)
 
-  // Aplicar tema como variables CSS en el contenedor raíz
   const theme = THEMES[config.theme] || THEMES.green
   const themeStyle = Object.entries(theme)
     .map(([k, v]) => `${k}:${v}`)
@@ -37,7 +54,6 @@ function Widget({ config }) {
 
   return (
     <>
-      {/* Botón FAB — visible en móvil Y desktop, coloreado por tema */}
       {!open && (
         <button
           class="mc-fab"
@@ -51,10 +67,8 @@ function Widget({ config }) {
         </button>
       )}
 
-      {/* Backdrop — solo desktop */}
       {open && <div class="mc-backdrop open" onClick={() => setOpen(false)} />}
 
-      {/* Ventana de chat */}
       {open && (
         <Chat
           config={config}
@@ -66,29 +80,26 @@ function Widget({ config }) {
   )
 }
 
-export function createChat(config) {
-  // Defaults
+export function createChat(userConfig) {
+  const lang = userConfig.defaultLanguage || 'es'
+
+  // Merge de i18n: defaults del idioma + lo que pasa el usuario
+  const defaultTexts = DEFAULT_I18N[lang] || DEFAULT_I18N.es
+  const userTexts    = userConfig.i18n?.[lang] || {}
+  const mergedTexts  = { ...defaultTexts, ...userTexts }
+
   const finalConfig = {
-    theme: 'green',
-    defaultLanguage: 'en',
-    showWelcomeScreen: false,
+    theme:               'blue',
+    defaultLanguage:     'es',
+    showWelcomeScreen:   false,
     loadPreviousSession: true,
-    enableStreaming: false,
-    initialMessages: [],
+    enableStreaming:     false,
+    initialMessages:     [],
+    ...userConfig,
+    // i18n siempre tiene el idioma correcto con defaults aplicados
     i18n: {
-      en: {
-        title: 'Asistente virtual',
-        inputPlaceholder: 'Escribe un mensaje...',
-      }
-    },
-    ...config,
-    // Merge profundo de i18n para no perder defaults
-    i18n: {
-      en: {
-        title: 'Asistente virtual',
-        inputPlaceholder: 'Escribe un mensaje...',
-        ...(config.i18n?.en || {}),
-      }
+      ...userConfig.i18n,
+      [lang]: mergedTexts,
     }
   }
 
