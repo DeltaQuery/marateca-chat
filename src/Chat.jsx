@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'preact/hooks'
 import './chat.css'
 
-const STORAGE_KEY    = 'mc_session'
-const HISTORY_KEY    = 'mc_history'
-const MAX_MESSAGES   = 8
-const TTL_MS         = 24 * 60 * 60 * 1000
-const TYPING_SPEED   = 8   // ms por carácter — ajusta este valor
+const STORAGE_KEY = 'mc_session'
+const HISTORY_KEY = 'mc_history'
+const MAX_MESSAGES = 8
+const TTL_MS = 24 * 60 * 60 * 1000
+const TYPING_SPEED = 8   // ms por carácter — ajusta este valor
 
 function getTime() {
   return new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
@@ -15,8 +15,8 @@ function getTime() {
 function parseMarkdown(text) {
   if (!text) return null
   const normalized = text.replace(/\\n/g, '\n')
-  const lines      = normalized.split('\n')
-  const result     = []
+  const lines = normalized.split('\n')
+  const result = []
 
   lines.forEach((line, lineIndex) => {
     if (lineIndex > 0) result.push(<br key={`br-${lineIndex}`} />)
@@ -61,14 +61,14 @@ function extractJsonChunks(buffer) {
 
     if (end === -1) break
 
-    try { chunks.push(JSON.parse(buffer.slice(open, end + 1))) } catch {}
+    try { chunks.push(JSON.parse(buffer.slice(open, end + 1))) } catch { }
     pos = end + 1
   }
 
   const remaining = pos < buffer.length
     ? buffer.slice(buffer.lastIndexOf('{', buffer.length) > pos - 1
-        ? buffer.lastIndexOf('{', buffer.length)
-        : pos)
+      ? buffer.lastIndexOf('{', buffer.length)
+      : pos)
     : ''
   return { chunks, remaining }
 }
@@ -101,24 +101,24 @@ function saveHistory(messages) {
   try {
     localStorage.setItem(HISTORY_KEY, JSON.stringify({
       messages: messages.slice(-MAX_MESSAGES),
-      lastAt:   Date.now()
+      lastAt: Date.now()
     }))
-  } catch {}
+  } catch { }
 }
 
 /* ── COMPONENTE ─────────────────────────────────────────────────────────── */
 export function Chat({ config, theme, onClose, onPending }) {
   const {
     webhookUrl,
-    initialMessages     = [],
-    i18n                = {},
-    defaultLanguage     = 'es',
-    showWelcomeScreen   = false,
+    initialMessages = [],
+    i18n = {},
+    defaultLanguage = 'es',
+    showWelcomeScreen = false,
     loadPreviousSession = true,
-    enableStreaming      = false,
+    enableStreaming = false,
   } = config
 
-  const t         = i18n[defaultLanguage] || i18n.es || i18n.en || {}
+  const t = i18n[defaultLanguage] || i18n.es || i18n.en || {}
   const sessionId = useRef(getSessionId())
 
   const [messages, setMessages] = useState(() => {
@@ -131,25 +131,25 @@ export function Chat({ config, theme, onClose, onPending }) {
     }))
   })
 
-  const [input,   setInput]   = useState('')
-  const [typing,  setTyping]  = useState(false)
+  const [input, setInput] = useState('')
+  const [typing, setTyping] = useState(false)
   const [closing, setClosing] = useState(false)
   const [started, setStarted] = useState(!showWelcomeScreen)
 
-  const pendingRef   = useRef(false)
+  const pendingRef = useRef(false)
   const onPendingRef = useRef(onPending)
   useEffect(() => { onPendingRef.current = onPending }, [onPending])
-  const messagesRef  = useRef(null)
-  const inputRef     = useRef(null)
+  const messagesRef = useRef(null)
+  const inputRef = useRef(null)
 
   // Cola de caracteres pendientes de mostrar
-  const charQueueRef    = useRef([])
+  const charQueueRef = useRef([])
   // Texto ya mostrado en pantalla para la burbuja actual
-  const displayedRef    = useRef('')
+  const displayedRef = useRef('')
   // ID del intervalo de escritura
-  const typingTimerRef  = useRef(null)
+  const typingTimerRef = useRef(null)
   // ID del mensaje bot activo en streaming
-  const streamBotIdRef  = useRef(null)
+  const streamBotIdRef = useRef(null)
 
   useEffect(() => { return () => { pendingRef.current = true } }, [])
 
@@ -160,7 +160,7 @@ export function Chat({ config, theme, onClose, onPending }) {
     try {
       const pending = JSON.parse(raw)
       setMessages(prev => prev.some(m => m.id === pending.id) ? prev : [...prev, pending])
-    } catch {}
+    } catch { }
   }, [])
 
   useEffect(() => {
@@ -238,7 +238,7 @@ export function Chat({ config, theme, onClose, onPending }) {
     setTyping(true)
     try {
       const res = await fetch(webhookUrl, {
-        method:  'POST',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'sendMessage', sessionId: sessionId.current,
@@ -246,7 +246,7 @@ export function Chat({ config, theme, onClose, onPending }) {
         })
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const data  = await res.json()
+      const data = await res.json()
       const reply = data?.output ?? data?.message ?? data?.text ?? '(Sin respuesta)'
       const botMsg = { id: Date.now() + Math.random(), text: reply, role: 'bot', time: getTime() }
 
@@ -273,19 +273,19 @@ export function Chat({ config, theme, onClose, onPending }) {
 
     setTyping(true)
 
-    const botId     = Date.now() + Math.random()
-    const botTime   = getTime()
-    let   botCreated = false
-    let   hasChunks  = false
+    const botId = Date.now() + Math.random()
+    const botTime = getTime()
+    let botCreated = false
+    let hasChunks = false
 
     // Resetear cola y estado de escritura
-    charQueueRef.current   = []
-    displayedRef.current   = ''
+    charQueueRef.current = []
+    displayedRef.current = ''
     streamBotIdRef.current = botId
 
     try {
       const res = await fetch(webhookUrl, {
-        method:  'POST',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'sendMessage', sessionId: sessionId.current,
@@ -295,9 +295,9 @@ export function Chat({ config, theme, onClose, onPending }) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       if (!res.body) throw new Error('Response body no disponible')
 
-      const reader  = res.body.getReader()
+      const reader = res.body.getReader()
       const decoder = new TextDecoder()
-      let   buffer  = ''
+      let buffer = ''
 
       while (true) {
         const { done, value } = await reader.read()
@@ -393,7 +393,11 @@ export function Chat({ config, theme, onClose, onPending }) {
 
       <header class="mc-header">
         <div class="mc-header-info">
-          <div class="mc-avatar">🏃</div>
+          <div class="mc-avatar">
+            {config.avatar
+              ? <img src={config.avatar} alt="avatar" />
+              : '🏃'}
+          </div>
           <div class="mc-header-text">
             <h3>{t.title || 'Asistente virtual'}</h3>
             <span><span class="mc-status-dot" />{t.online || 'En línea'}</span>
@@ -446,7 +450,7 @@ export function Chat({ config, theme, onClose, onPending }) {
             />
             <button type="submit" class="mc-send-btn" aria-label="Enviar">
               <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
               </svg>
             </button>
           </form>

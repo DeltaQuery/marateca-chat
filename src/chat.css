@@ -155,12 +155,21 @@
   padding-top: max(16px, env(safe-area-inset-top));
 }
 .mc-header-info { display: flex; align-items: center; gap: 10px; }
+
 .mc-avatar {
   width: 38px; height: 38px; border-radius: 50%;
   background: rgba(255,255,255,.22);
   display: flex; align-items: center; justify-content: center;
   font-size: 20px; flex-shrink: 0;
 }
+
+.mc-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 50%;
+}
+
 .mc-header-text h3  { font-size: 15px; font-weight: 600; line-height: 1.2; }
 .mc-header-text span {
   font-size: 12px; opacity: .85;
@@ -353,23 +362,6 @@
 .mc-msg.user .mc-link { color: #005BBB; }
 
 /* Badge en FAB — NO agregar position:relative al .mc-fab */
-.mc-fab-badge {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #FF3B30;
-  border: 2px solid #fff;
-  animation: badgePop .3s cubic-bezier(.34,1.56,.64,1);
-}
-@keyframes badgePop {
-  from { transform: scale(0); }
-  to   { transform: scale(1); }
-}
-
-/* Badge en FAB */
 .mc-fab-badge {
   position: absolute;
   top: 2px;
