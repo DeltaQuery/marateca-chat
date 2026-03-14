@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Prueba Marateca Chat</title>
   <link rel="stylesheet" href="./marateca-chat.css">
 </head>
+
 <body>
 
   <h1 style="font-family: sans-serif; padding: 20px;">Mi web de prueba</h1>
@@ -18,30 +21,32 @@
     MaratecaChat.createChat({
       // ── Requerido ────────────────────────────────────────────────────────
       webhookUrl: 'https://n8n.marateca.com.ve/webhook/9069eb9b-ad4a-40ae-b26d-12265a8ab7b1/chat',
- 
+
       // ── Apariencia ───────────────────────────────────────────────────────
       theme: 'blue',          // 'green' | 'blue' | 'dark' | 'silver'
- 
+
       // ── Comportamiento ───────────────────────────────────────────────────
-      defaultLanguage:     'es',    // 'es' | 'en'
-      showWelcomeScreen:   false,   // true = muestra pantalla de bienvenida
+      defaultLanguage: 'es',    // 'es' | 'en'
+      showWelcomeScreen: false,   // true = muestra pantalla de bienvenida
       loadPreviousSession: true,    // true = carga historial de 24h
-      enableStreaming:     true,    // true = texto aparece letra por letra
+      enableStreaming: true,    // true = texto aparece letra por letra
       avatar: 'https://marateca.com.ve/wp-content/uploads/2023/09/logo_marateca_main.png', // URL de la imagen del avatar (opcional)
- 
+      fabIcon: 'https://marateca.com.ve/wp-content/uploads/2026/01/ia-chat-icon.png',
+
       // ── Mensaje inicial ──────────────────────────────────────────────────
       initialMessages: [
         "Hola! Soy Nova, la IA de Marateca 💙 Ponme a prueba, respondo rápido!"
       ],
- 
+
       // ── Textos de la interfaz ────────────────────────────────────────────
       i18n: {
         es: {
-          title:            'Asistente virtual 24/7',
+          title: 'Asistente virtual 24/7',
           inputPlaceholder: 'Escribe tu consulta...',
         }
       }
     })
   </script>
 </body>
+
 </html>
