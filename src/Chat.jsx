@@ -10,9 +10,7 @@ function getTime() {
   return new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
 }
 
-/* ── MARKDOWN PARSER ────────────────────────────────────────────────────────
-   Maneja: **negrita**, [link](url), \n
-────────────────────────────────────────────────────────────────────────── */
+/* ── MARKDOWN PARSER ──────────────────────────────────────────────────────── */
 function parseMarkdown(text) {
   if (!text) return null
   const normalized = text.replace(/\\n/g, '\n')
@@ -42,6 +40,36 @@ function parseMarkdown(text) {
   })
 
   return result
+}
+
+/* ── NDJSON PARSER ──────────────────────────────────────────────────────────
+   n8n envía objetos JSON pegados sin separador: {...}{...}{...}
+   Extrae todos los JSON completos del buffer y devuelve el resto.
+────────────────────────────────────────────────────────────────────────── */
+function extractJsonChunks(buffer) {
+  const chunks = []
+  let pos = 0
+
+  while (pos < buffer.length) {
+    const open = buffer.indexOf('{', pos)
+    if (open === -1) break
+
+    let depth = 0, end = -1
+    for (let i = open; i < buffer.length; i++) {
+      if (buffer[i] === '{') depth++
+      if (buffer[i] === '}') depth--
+      if (depth === 0) { end = i; break }
+    }
+
+    if (end === -1) break  // JSON incompleto, esperar más datos
+
+    try { chunks.push(JSON.parse(buffer.slice(open, end + 1))) } catch {}
+    pos = end + 1
+  }
+
+  // Conservar lo que quedó incompleto
+  const remaining = pos < buffer.length ? buffer.slice(buffer.lastIndexOf('{', buffer.length) > pos - 1 ? buffer.lastIndexOf('{', buffer.length) : pos) : ''
+  return { chunks, remaining }
 }
 
 /* ── SESIÓN ─────────────────────────────────────────────────────────────── */
@@ -193,19 +221,15 @@ export function Chat({ config, theme, onClose, onPending }) {
 
   /* ── MODO STREAMING ───────────────────────────────────────────────────── */
   async function sendStreaming(text) {
+    if (pendingRef.current) return
+
     setTyping(true)
 
-    // Crear la burbuja del bot vacía — la iremos llenando con los chunks
-    const botId   = Date.now() + Math.random()
-    const botTime = getTime()
-    const emptyMsg = { id: botId, text: '', role: 'bot', time: botTime }
-
-    if (pendingRef.current) return  // si ya cerraron, no hacer nada
-
-    setMessages(prev => [...prev, emptyMsg])
-    setTyping(false)  // ocultamos el indicador de puntos, ya hay burbuja
-
-    let accumulated = ''
+    const botId      = Date.now() + Math.random()
+    const botTime    = getTime()
+    let   botCreated  = false  // burbuja creada solo cuando llega el primer chunk
+    let   accumulated = ''
+    let   hasChunks   = false  // llegó al menos un type:"item"
 
     try {
       const res = await fetch(webhookUrl, {
@@ -217,6 +241,7 @@ export function Chat({ config, theme, onClose, onPending }) {
         })
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      if (!res.body) throw new Error('Response body no disponible')
 
       const reader  = res.body.getReader()
       const decoder = new TextDecoder()
@@ -229,53 +254,69 @@ export function Chat({ config, theme, onClose, onPending }) {
 
         buffer += decoder.decode(value, { stream: true })
 
-        // n8n envía chunks NDJSON pegados sin separador entre ellos.
-        // Los separamos buscando los límites "}{" entre objetos JSON.
-        // Estrategia: extraer todos los JSON completos del buffer.
-        let start = 0
-        while (true) {
-          // Buscar el inicio de un objeto JSON
-          const open = buffer.indexOf('{', start)
-          if (open === -1) break
+        const { chunks, remaining } = extractJsonChunks(buffer)
+        buffer = remaining
 
-          // Intentar parsear desde 'open' buscando el cierre correcto
-          let depth = 0
-          let end   = -1
-          for (let i = open; i < buffer.length; i++) {
-            if (buffer[i] === '{') depth++
-            if (buffer[i] === '}') depth--
-            if (depth === 0) { end = i; break }
-          }
+        for (const chunk of chunks) {
+          switch (chunk.type) {
 
-          if (end === -1) break  // JSON incompleto, esperar más datos
-
-          const jsonStr = buffer.slice(open, end + 1)
-          start = end + 1
-
-          try {
-            const chunk = JSON.parse(jsonStr)
-            // Solo nos interesan los chunks de tipo "item" con contenido
-            if (chunk.type === 'item' && chunk.content) {
+            case 'item': {
+              if (!chunk.content) break
+              hasChunks    = true
               accumulated += chunk.content
-              // Actualizar la burbuja del bot con el texto acumulado
-              setMessages(prev => prev.map(m =>
-                m.id === botId ? { ...m, text: accumulated } : m
-              ))
-              scrollBottom()
-            }
-          } catch {}
 
-          buffer = buffer.slice(start)
-          start  = 0
+              if (!botCreated) {
+                // Primer chunk: quitar puntos, crear burbuja
+                setTyping(false)
+                setMessages(prev => [...prev, {
+                  id: botId, text: accumulated, role: 'bot', time: botTime
+                }])
+                botCreated = true
+              } else {
+                // Chunks siguientes: actualizar burbuja existente
+                setMessages(prev => prev.map(m =>
+                  m.id === botId ? { ...m, text: accumulated } : m
+                ))
+              }
+              scrollBottom()
+              break
+            }
+
+            case 'error': {
+              hasChunks = true
+              const errText = `⚠️ Error del servidor: ${chunk.content ?? 'desconocido'}`
+              if (!botCreated) {
+                setTyping(false)
+                setMessages(prev => [...prev, {
+                  id: botId, text: errText, role: 'bot', time: botTime
+                }])
+                botCreated = true
+              } else {
+                setMessages(prev => prev.map(m =>
+                  m.id === botId ? { ...m, text: accumulated + '\n' + errText } : m
+                ))
+              }
+              break
+            }
+
+            // type:"begin" y type:"end" — ignorados, solo nos importa el contenido
+          }
         }
       }
+
+      // Stream terminó sin ningún chunk type:item
+      if (!hasChunks && !pendingRef.current) {
+        setTyping(false)
+        addMessage('⚠️ No pude conectar con el servidor. Intenta de nuevo.', 'bot')
+      }
+
     } catch (err) {
       if (!pendingRef.current) {
-        setMessages(prev => prev.map(m =>
-          m.id === botId
-            ? { ...m, text: '⚠️ No pude conectar con el servidor. Intenta de nuevo.' }
-            : m
-        ))
+        setTyping(false)
+        if (!botCreated) {
+          addMessage('⚠️ No pude conectar con el servidor. Intenta de nuevo.', 'bot')
+        }
+        // Si la burbuja ya existe con texto parcial, la dejamos — es mejor que borrarla
       }
       console.error('[Marateca Chat]', err)
     }
@@ -288,11 +329,7 @@ export function Chat({ config, theme, onClose, onPending }) {
     if (!text) return
     setInput('')
     addMessage(text, 'user')
-    if (enableStreaming) {
-      sendStreaming(text)
-    } else {
-      sendNormal(text)
-    }
+    enableStreaming ? sendStreaming(text) : sendNormal(text)
   }
 
   function handleKeyDown(e) {
