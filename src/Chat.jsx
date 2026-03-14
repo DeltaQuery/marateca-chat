@@ -116,6 +116,7 @@ export function Chat({ config, theme, onClose, onPending }) {
     showWelcomeScreen = false,
     loadPreviousSession = true,
     enableStreaming = false,
+    avatar = null,
   } = config
 
   const t = i18n[defaultLanguage] || i18n.es || i18n.en || {}
